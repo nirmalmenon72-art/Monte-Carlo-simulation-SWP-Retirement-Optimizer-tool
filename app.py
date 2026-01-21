@@ -1,37 +1,37 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from fpdf import FPDF
+import base64
 
-    import streamlit as st
-... import pandas as pd
-... import numpy as np
-... import plotly.graph_objects as go
-... from fpdf import FPDF
-... import base64
-... 
-... # --- Page Configuration ---
-... st.set_page_config(page_title="Retirement SWP Optimizer", layout="wide")
-... 
-... # --- PDF Generation Function ---
-... def create_pdf(success_rate, median_balance, years, withdrawal, scenario):
-...     pdf = FPDF()
-...     pdf.add_page()
-...     pdf.set_font("Arial", 'B', 16)
-...     pdf.cell(200, 10, "Retirement SWP Simulation Report", ln=True, align='C')
-...     pdf.ln(10)
-...     
-...     pdf.set_font("Arial", size=12)
-...     pdf.cell(200, 10, f"Stress Test Scenario: {scenario}", ln=True)
-...     pdf.cell(200, 10, f"Success Probability: {success_rate:.1f}%", ln=True)
-...     pdf.cell(200, 10, f"Median Ending Balance: ${median_balance:,.2f}", ln=True)
-...     pdf.cell(200, 10, f"Retirement Duration: {years} years", ln=True)
-...     pdf.cell(200, 10, f"Initial Monthly Withdrawal: ${withdrawal:,.2f}", ln=True)
-...     
-...     pdf.ln(20)
-...     pdf.set_font("Arial", 'I', 10)
-...     pdf.multi_cell(0, 10, "Disclaimer: This simulation uses a normal distribution of returns. "
-...                           "Historical stress tests simulate early-retirement shocks. "
-...                           "Past performance is not indicative of future results.")
-...     return pdf.output(dest='S').encode('latin-1')
-... 
-... # --- UI Header ---
+# --- Page Configuration ---
+st.set_page_config(page_title="Retirement SWP Optimizer", layout="wide")
+
+# --- PDF Generation Function ---
+def create_pdf(success_rate, median_balance, years, withdrawal, scenario):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, "Retirement SWP Simulation Report", ln=True, align='C')
+    pdf.ln(10)
+    
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, f"Stress Test Scenario: {scenario}", ln=True)
+    pdf.cell(200, 10, f"Success Probability: {success_rate:.1f}%", ln=True)
+    pdf.cell(200, 10, f"Median Ending Balance: ${median_balance:,.2f}", ln=True)
+    pdf.cell(200, 10, f"Retirement Duration: {years} years", ln=True)
+    pdf.cell(200, 10, f"Initial Monthly Withdrawal: ${withdrawal:,.2f}", ln=True)
+    
+    pdf.ln(20)
+    pdf.set_font("Arial", 'I', 10)
+    pdf.multi_cell(0, 10, "Disclaimer: This simulation uses a normal distribution of returns. "
+                          "Historical stress tests simulate early-retirement shocks. "
+                          "Past performance is not indicative of future results.")
+    # Use 'latin-1' encoding for FPDF output string
+    return pdf.output(dest='S').encode('latin-1')
+
+# --- UI Header ---
 st.title("🛡️ Retirement SWP Optimizer & Stress Tester")
 st.markdown("Simulate market volatility and historical crashes to see if your money lasts.")
 
@@ -125,11 +125,13 @@ st.plotly_chart(fig, use_container_width=True)
 
 # --- PDF Download ---
 st.divider()
-pdf_bytes = create_pdf(success_rate, median_final, years, monthly_withdrawal, crash_scenario)
-st.download_button(
-    label="📥 Download Detailed PDF Report",
-    data=pdf_bytes,
-    file_name="Retirement_Stress_Test.pdf",
-    mime="application/pdf"
-)
-
+try:
+    pdf_bytes = create_pdf(success_rate, median_final, years, monthly_withdrawal, crash_scenario)
+    st.download_button(
+        label="📥 Download Detailed PDF Report",
+        data=pdf_bytes,
+        file_name="Retirement_Stress_Test.pdf",
+        mime="application/pdf"
+    )
+except Exception as e:
+    st.error(f"Could not generate PDF: {e}")

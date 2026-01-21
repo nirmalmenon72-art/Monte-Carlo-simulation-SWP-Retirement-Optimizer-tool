@@ -6,7 +6,7 @@ from fpdf import FPDF
 import base64
 
 # --- Page Configuration ---
-st.set_page_config(page_title="Retirement SWP Optimizer", layout="wide")
+st.set_page_config(page_title="Retirement SWP Optimizer (INR)", layout="wide")
 
 # --- PDF Generation Function ---
 def create_pdf(success_rate, median_balance, years, withdrawal, scenario):
@@ -19,33 +19,35 @@ def create_pdf(success_rate, median_balance, years, withdrawal, scenario):
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, f"Stress Test Scenario: {scenario}", ln=True)
     pdf.cell(200, 10, f"Success Probability: {success_rate:.1f}%", ln=True)
-    pdf.cell(200, 10, f"Median Ending Balance: ${median_balance:,.2f}", ln=True)
+    # Using 'Rs.' in PDF for better font compatibility than the ₹ symbol
+    pdf.cell(200, 10, f"Median Ending Balance: Rs. {median_balance:,.2f}", ln=True)
     pdf.cell(200, 10, f"Retirement Duration: {years} years", ln=True)
-    pdf.cell(200, 10, f"Initial Monthly Withdrawal: ${withdrawal:,.2f}", ln=True)
+    pdf.cell(200, 10, f"Initial Monthly Withdrawal: Rs. {withdrawal:,.2f}", ln=True)
     
     pdf.ln(20)
     pdf.set_font("Arial", 'I', 10)
     pdf.multi_cell(0, 10, "Disclaimer: This simulation uses a normal distribution of returns. "
                           "Historical stress tests simulate early-retirement shocks. "
                           "Past performance is not indicative of future results.")
-    # Use 'latin-1' encoding for FPDF output string
     return pdf.output(dest='S').encode('latin-1')
 
 # --- UI Header ---
 st.title("🛡️ Retirement SWP Optimizer & Stress Tester")
-st.markdown("Simulate market volatility and historical crashes to see if your money lasts.")
+st.markdown("Simulate market volatility and historical crashes in **Indian Rupees (₹)**.")
 
 # --- Sidebar Inputs ---
 with st.sidebar:
-    st.header("📈 Financial Inputs")
-    initial_investment = st.number_input("Current Portfolio Value ($)", value=1000000, step=50000)
-    monthly_withdrawal = st.number_input("Monthly Withdrawal ($)", value=4000, step=500)
+    st.header("📈 Financial Inputs (₹)")
+    # Defaults to 1 Crore (1,00,00,000)
+    initial_investment = st.number_input("Current Portfolio Value (₹)", value=10000000, step=500000)
+    # Defaults to 50,000 monthly
+    monthly_withdrawal = st.number_input("Monthly Withdrawal (₹)", value=50000, step=5000)
     years = st.slider("Years in Retirement", 10, 50, 30)
     
     st.header("🎲 Market Assumptions")
-    avg_return = st.slider("Expected Annual Return (%)", 0.0, 15.0, 7.0) / 100
-    volatility = st.slider("Annual Volatility (%)", 0.0, 25.0, 12.0) / 100
-    inflation = st.slider("Expected Inflation (%)", 0.0, 10.0, 3.0) / 100
+    avg_return = st.slider("Expected Annual Return (%)", 0.0, 15.0, 10.0) / 100 # Default 10% for India
+    volatility = st.slider("Annual Volatility (%)", 0.0, 25.0, 15.0) / 100
+    inflation = st.slider("Expected Inflation (%)", 0.0, 12.0, 6.0) / 100 # Default 6% for India
     
     st.header("⚠️ Stress Test")
     crash_scenario = st.selectbox(
@@ -76,17 +78,11 @@ def run_monte_carlo():
         current_balance = initial_investment
         current_withdrawal = monthly_withdrawal
         for m in range(n_months):
-            # Market Return
             m_return = np.random.normal(monthly_return, monthly_vol)
-            
-            # Apply Stress Test if in the shock period
             if m < selected_shock["duration"]:
                 m_return += (selected_shock["drop"] / selected_shock["duration"])
             
-            # Update Balance
             current_balance = (current_balance * (1 + m_return)) - current_withdrawal
-            
-            # Inflation Adjust for next month
             current_withdrawal *= (1 + monthly_inflation)
             
             if current_balance <= 0:
@@ -104,8 +100,9 @@ median_final = np.median(results[:, -1])
 # --- Main Dashboard ---
 col1, col2, col3 = st.columns(3)
 col1.metric("Success Rate", f"{success_rate:.1f}%")
-col2.metric("Median Ending Balance", f"${median_final:,.0f}")
-col3.metric("Stress Test Active", crash_scenario)
+# Displaying in Rupees using the ₹ symbol
+col2.metric("Median Final Balance", f"₹ {median_final:,.0f}")
+col3.metric("Stress Test", crash_scenario)
 
 # --- Plotting ---
 fig = go.Figure()
@@ -116,9 +113,9 @@ for i in range(min(simulations, 100)):
                              line=dict(width=0.7), opacity=0.3, showlegend=False))
 
 fig.update_layout(
-    title=f"Portfolio Projections ({crash_scenario} scenario)",
+    title=f"Portfolio Projections (₹ - {crash_scenario} scenario)",
     xaxis_title="Years in Retirement",
-    yaxis_title="Portfolio Balance ($)",
+    yaxis_title="Portfolio Balance (₹)",
     template="plotly_dark"
 )
 st.plotly_chart(fig, use_container_width=True)
@@ -130,7 +127,7 @@ try:
     st.download_button(
         label="📥 Download Detailed PDF Report",
         data=pdf_bytes,
-        file_name="Retirement_Stress_Test.pdf",
+        file_name="Retirement_Stress_Test_INR.pdf",
         mime="application/pdf"
     )
 except Exception as e:
